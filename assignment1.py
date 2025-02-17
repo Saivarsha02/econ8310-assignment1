@@ -1,74 +1,76 @@
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.api import ExponentialSmoothing
+from statsmodels.tsa.statespace.varmax import VARMAX
 import pickle
-import matplotlib.pyplot as plt
 
 # Load training data
 train_url = "https://github.com/dustywhite7/econ8310-assignment1/raw/main/assignment_data_train.csv"
 train_data = pd.read_csv(train_url)
 
-# Standardize column names
+# Ensure correct timestamp column name
 if 'Timestamp' in train_data.columns:
     train_data.rename(columns={'Timestamp': 'timestamp'}, inplace=True)
 
-# Convert to datetime and set as index
+# Convert timestamp column to datetime format and set as index
 train_data['timestamp'] = pd.to_datetime(train_data['timestamp'])
 train_data.set_index('timestamp', inplace=True)
 
-# Ensure hourly frequency
-train_data = train_data.asfreq('H')
+# Ensure dataset follows an hourly frequency
+train_data = train_data.asfreq('h')
 
-# Define dependent variable
+# Select the dependent variable (number of taxi trips)
 y_train = train_data['trips']
 
-# === Alternative Exponential Smoothing Model === #
-forecast_model = ExponentialSmoothing(y_train, trend='add', seasonal='mul', seasonal_periods=24)
-forecast_fit = forecast_model.fit()
+# === OPTION 1: Exponential Smoothing Model === #
+model = ExponentialSmoothing(y_train, seasonal='add', seasonal_periods=24)
+modelFit = model.fit()
 
-# Save trained model
-with open("forecast_model.pkl", "wb") as model_file:
-    pickle.dump(forecast_fit, model_file)
+# Save the trained model
+with open("model.pkl", "wb") as f:
+    pickle.dump(modelFit, f)
 
 # Load test data
 test_url = "https://github.com/dustywhite7/econ8310-assignment1/raw/main/assignment_data_test.csv"
 test_data = pd.read_csv(test_url)
 
-# Standardize test dataset columns
+# Ensure correct timestamp column name in test data
 if 'Timestamp' in test_data.columns:
     test_data.rename(columns={'Timestamp': 'timestamp'}, inplace=True)
 
-# Convert timestamp column and set as index
+# Convert test timestamp column to datetime format and set as index
 test_data['timestamp'] = pd.to_datetime(test_data['timestamp'])
 test_data.set_index('timestamp', inplace=True)
-test_data = test_data.asfreq('H')
+test_data = test_data.asfreq('h')
 
-# Generate forecast for 744 hours
-predicted_values = forecast_fit.forecast(steps=744)
+# Forecast for 744 hours (January of next year)
+pred = modelFit.forecast(steps=744)
 
-# Save forecast output
-predicted_values.to_csv("forecast_results.csv")
+# Save predictions
+pred.to_csv("predictions.csv")
 
-print("Forecasting process completed successfully!")
+print("Model training and prediction completed successfully!")
 
-# Load predictions for visualization
-predictions = pd.read_csv("forecast_results.csv", index_col=0)
-predictions.index = pd.to_datetime(predictions.index)
+import matplotlib.pyplot as plt
 
-# Visualization
+# Load predictions
+pred = pd.read_csv("predictions.csv", index_col=0)
+pred.index = pd.to_datetime(pred.index)
+
+# Plot the predictions
 plt.figure(figsize=(12, 5))
-plt.plot(predictions, label="Projected Trips", color='green')
-plt.title("Projected Number of Taxi Trips")
+plt.plot(pred, label="Predicted Trips", color='green')
+plt.title("Forecasted Number of Taxi Trips")
 plt.xlabel("Time")
-plt.ylabel("Trips Count")
+plt.ylabel("Number of Trips")
 plt.legend()
 plt.show()
 
 plt.figure(figsize=(12, 5))
-plt.plot(y_train[-500:], label="Historical Trips", color='red')
-plt.plot(predictions, label="Projected Trips", color='green')
-plt.title("Historical vs Projected Taxi Trips")
+plt.plot(y_train[-500:], label="Actual Trips (Training)", color='black')  # Last 500 hours of training data
+plt.plot(pred, label="Predicted Trips", color='green')
+plt.title("Actual vs Forecasted Taxi Trips")
 plt.xlabel("Time")
-plt.ylabel("Trips Count")
+plt.ylabel("Number of Trips")
 plt.legend()
 plt.show()
