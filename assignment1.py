@@ -50,27 +50,3 @@ pred = modelFit.forecast(steps=744)
 pred.to_csv("predictions.csv")
 
 print("Model training and prediction completed successfully!")
-
-import matplotlib.pyplot as plt
-
-# Load predictions
-pred = pd.read_csv("predictions.csv", index_col=0)
-pred.index = pd.to_datetime(pred.index)
-
-# Plot the predictions
-plt.figure(figsize=(12, 5))
-plt.plot(pred, label="Predicted Trips", color='green')
-plt.title("Forecasted Number of Taxi Trips")
-plt.xlabel("Time")
-plt.ylabel("Number of Trips")
-plt.legend()
-plt.show()
-
-plt.figure(figsize=(12, 5))
-plt.plot(y_train[-500:], label="Actual Trips (Training)", color='black')  # Last 500 hours of training data
-plt.plot(pred, label="Predicted Trips", color='green')
-plt.title("Actual vs Forecasted Taxi Trips")
-plt.xlabel("Time")
-plt.ylabel("Number of Trips")
-plt.legend()
-plt.show()
